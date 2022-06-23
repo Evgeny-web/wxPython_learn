@@ -27,7 +27,7 @@ class AppContextMenu(wx.Menu):
 # Основной класс для создания отображения приложения (окно)
 class MyFrame(wx.Frame):
     def __init__(self, parent, title):
-        super().__init__(parent, title=title)
+        super().__init__(parent, title=title, size=(600, 450))
 
         menubar = wx.MenuBar()
         fileMenu = wx.Menu()
@@ -64,56 +64,46 @@ class MyFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, self.onImageType, id=VIEW_RGB)
         self.Bind(wx.EVT_MENU, self.onImageType, id=VIEW_SRGB)
 
-        # меню отображаемое на правую кнопку мыши
-        self.ctx = AppContextMenu(self)
-        self.Bind(wx.EVT_RIGHT_DOWN, self.onRightDown)
-
-        # Создаем панель toolbar
-        toolbar = self.CreateToolBar()
-        bt_quit = toolbar.AddTool(wx.ID_ANY, "Выход", wx.Bitmap("Выход.png"))
-        toolbar.AddSeparator()
-
-        toolbar.Realize()
-
-        self.Bind(wx.EVT_TOOL, self.onQuit, bt_quit)
-
-        # Отобразим виджеты на экране
+        # Отобразим калькулятор на экране
         panel = wx.Panel(self)
         vbox = wx.BoxSizer(wx.VERTICAL)
 
-        hbox1 = wx.BoxSizer(wx.HORIZONTAL)
-        st1 = wx.StaticText(panel, label="Путь к файлу: ")
-        tc = wx.TextCtrl(panel)
+        font = wx.SystemSettings.GetFont(wx.SYS_DEFAULT_GUI_FONT)
+        font.SetPointSize(12)
+        panel.SetFont(font)
 
-        hbox1.Add(st1, flag=wx.RIGHT, border=8)
-        hbox1.Add(tc, proportion=1)
+        self.tc = wx.ComboBox(panel)
+        vbox.Add(self.tc, flag=wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP, border=10)
 
-        vbox.Add(hbox1, flag=wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP, border=10)
+        gbox = wx.GridSizer(5, 4, 5, 5) # кол-во строк, столбцов, отступов по вертикали и горизонтали
+        gbox.AddMany([(wx.Button(panel, label="Cls"), wx.ID_ANY, wx.EXPAND),
+                      (wx.Button(panel, label="Bck"), wx.ID_ANY, wx.EXPAND),
+                      (wx.StaticText(panel), wx.EXPAND),
+                      (wx.Button(panel, label="Close"), 0, wx.EXPAND),
+                      (wx.Button(panel, label="7"), 0, wx.EXPAND),
+                      (wx.Button(panel, label="8"), 0, wx.EXPAND),
+                      (wx.Button(panel, label="9"), 0, wx.EXPAND),
+                      (wx.Button(panel, label="/"), 0, wx.EXPAND),
+                      (wx.Button(panel, label="4"), 0, wx.EXPAND),
+                      (wx.Button(panel, label="5"), 0, wx.EXPAND),
+                      (wx.Button(panel, label="6"), 0, wx.EXPAND),
+                      (wx.Button(panel, label="*"), 0, wx.EXPAND),
+                      (wx.Button(panel, label="1"), 0, wx.EXPAND),
+                      (wx.Button(panel, label="2"), 0, wx.EXPAND),
+                      (wx.Button(panel, label="3"), 0, wx.EXPAND),
+                      (wx.Button(panel, label="-"), 0, wx.EXPAND),
+                      (wx.Button(panel, label="."), 0, wx.EXPAND),
+                      (wx.Button(panel, label="0"), 0, wx.EXPAND),
+                      (wx.Button(panel, label="+"), 0, wx.EXPAND),
+                      (wx.Button(panel, label="="), 0, wx.EXPAND)])
 
-        st2 = wx.StaticText(panel, label="Содержание файла")
-        vbox.Add(st2, flag=wx.EXPAND | wx.ALL, border=10)
-
-        tc2 = wx.TextCtrl(panel, style=wx.TE_MULTILINE)
-        vbox.Add(tc2, proportion=1,
-                 flag=wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, border=10)
-
-        btnok = wx.Button(panel, label="Да", size=(70, 30))
-        btncn = wx.Button(panel, label="Отмена", size=(70, 30))
-
-        hbox2 = wx.BoxSizer(wx.HORIZONTAL)
-        hbox2.Add(btnok, flag=wx.LEFT, border=10)
-        hbox2.Add(btncn, flag=wx.LEFT, border=10)
-
-        vbox.Add(hbox2, flag=wx.ALIGN_RIGHT | wx.BOTTOM | wx.RIGHT, border=10)
+        vbox.Add(gbox, proportion=1, flag=wx.EXPAND | wx.ALL, border=10)
 
         panel.SetSizer(vbox)
+        self.Bind(wx.EVT_BUTTON, self.OnClicked)
 
 
     # Пишем функции
-
-    def onRightDown(self, event):
-        self.PopupMenu(self.ctx, event.GetPosition())
-
     def onStatus(self, event):
         if self.vStatus.IsChecked():
             print("Показать строку")
@@ -128,6 +118,26 @@ class MyFrame(wx.Frame):
 
     def onQuit(self, event):
         self.Close()
+
+    def OnClicked(self, evt):
+        label = evt.GetEventObject().GetLabel() # создаем переменную, чтобы записывать в нее имя нажимаемых кнопочек
+
+        if label == '=':
+            compute = self.tc.GetValue() # берем выражение из поля ввода
+            # тут игнорируем пустой ввод
+            if not compute.strip():
+                return
+
+            result = eval(compute) # тут считаем полученное выражение
+            self.tc.Insert(compute, 0) # добавляем в историю наши расчеты
+            self.tc.SetValue(str(result)) # показываем
+
+        elif label == 'Cls':
+            self.tc.SetValue("") # чистим все
+        elif label == 'Close':
+            frame.Destroy() # выходим из приложения
+        else:
+            self.tc.SetValue(self.tc.GetValue() + label)
 
 
 app = wx.App()
